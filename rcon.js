@@ -1,7 +1,7 @@
 const dgram = require('dgram');
 
 /**
- * RCON Client for Jedi Academy with MBII mod
+ * RCON Client for Jedi Academy (JKA)
  * Uses Quake 3 UDP RCON protocol with \rcon prefix
  */
 class RconClient {
@@ -87,7 +87,7 @@ class RconClient {
   }
 
   /**
-   * Send raw RCON command (MBII format)
+   * Send raw RCON command
    * @param {string} command - The RCON command to send
    * @param {boolean} getResponse - Whether to wait for response
    * @returns {Promise<string|null>} - Response from server if getResponse is true
@@ -128,7 +128,7 @@ class RconClient {
       }, this.timeout);
 
       const messageHandler = (msg, rinfo) => {
-        // MBII/Quake 3 response format: strip the \rcon prefix and print\n
+        // JKA/Quake 3 response format: strip the \rcon prefix and print\n
         let response = msg.toString();
         
         // Strip common prefixes
@@ -193,7 +193,7 @@ class RconClient {
    * Send server-wide message (use color codes like ^1, ^2, etc.)
    */
   say(message) {
-    // Use MBII color codes: ^1=red, ^2=green, ^3=yellow, ^5=cyan, ^7=white
+    // Use JKA color codes: ^1=red, ^2=green, ^3=yellow, ^5=cyan, ^7=white
     // Jedi Academy uses svsay for server-wide messages via RCON
     return this.send(`svsay \"${message}\"`);
   }

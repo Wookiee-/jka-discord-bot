@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'mbii-bot',
+    name: 'jka-bot',
     script: 'bot.js',
     instances: 1,
     exec_mode: 'fork',

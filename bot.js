@@ -16,7 +16,7 @@ const serverManager = new ServerManager();
 // Map Discord channel IDs to server IDs for quick lookup
 const channelToServerMap = new Map();
 
-console.log('🎮 Starting Multi-Server Jedi Academy MBII Chat Bridge...\n');
+console.log('🎮 Starting Multi-Server Jedi Academy JKA Chat Bridge...\n');
 
 client.once('clientReady', async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);

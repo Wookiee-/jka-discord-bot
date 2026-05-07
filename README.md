@@ -1,6 +1,6 @@
-# Jedi Academy MBII - Chat Bridge Bot
+# Jedi Academy JKA - Chat Bridge Bot
 
-A two-way chat bridge between Discord and Star Wars Jedi Academy servers running the Movie Battles II (MBII) mod. Supports **single server** or **multiple servers** with dedicated Discord channels.
+A two-way chat bridge between Discord and Star Wars Jedi Academy servers. Supports **single server** or **multiple servers** with dedicated Discord channels.
 
 ## Features
 

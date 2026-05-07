@@ -6,10 +6,10 @@
   "scripts": {
     "start": "node bot.js",
     "dev": "nodemon bot.js",
-    "pm2:start": "pm2 start bot.js --name mbii-bot",
-    "pm2:stop": "pm2 stop mbii-bot",
-    "pm2:restart": "pm2 restart mbii-bot",
-    "pm2:logs": "pm2 logs mbii-bot",
+    "pm2:start": "pm2 start bot.js --name jka-bot",
+    "pm2:stop": "pm2 stop jka-bot",
+    "pm2:restart": "pm2 restart jka-bot",
+    "pm2:logs": "pm2 logs jka-bot",
     "pm2:list": "pm2 list"
   },
   "dependencies": {
