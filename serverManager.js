@@ -54,7 +54,9 @@ class ServerManager {
       lastLogPosition: 0,
       readInterval: null,
       watcherPollInterval: null,
-      retryPending: false
+      watcherRetryTimeout: null,
+      retryPending: false,
+      shuttingDown: false
     };
 
     this.servers.set(config.id, serverState);
@@ -92,11 +94,12 @@ class ServerManager {
    */
   startLogWatcher(serverId) {
     const server = this.servers.get(serverId);
-    if (!server) return;
+    if (!server || server.shuttingDown) return;
 
     const logFile = server.config.chatBridge.logFile;
 
     const ensureLogWatcher = () => {
+      if (server.shuttingDown) return false;
       if (server.logWatcher) {
         try { server.logWatcher.close(); } catch (e) {}
         server.logWatcher = null;
@@ -108,18 +111,21 @@ class ServerManager {
           console.log(`[${serverId}] Watching log: ${logFile} (${server.lastLogPosition} bytes)`);
 
           server.logWatcher = fs.watch(logFile, (eventType) => {
-            if (eventType === 'change') {
+            if (eventType === 'change' && !server.shuttingDown) {
               this.readNewChatLines(serverId);
             }
           });
 
           server.logWatcher.on('error', (err) => {
             server.logWatcher = null;
-            if (!server.retryPending) {
+            if (!server.retryPending && !server.shuttingDown) {
               server.retryPending = true;
-              setTimeout(() => {
+              server.watcherRetryTimeout = setTimeout(() => {
                 server.retryPending = false;
-                ensureLogWatcher();
+                server.watcherRetryTimeout = null;
+                if (!server.shuttingDown) {
+                  ensureLogWatcher();
+                }
               }, 5000);
             }
           });
@@ -132,8 +138,22 @@ class ServerManager {
       return false;
     };
 
+    if (server.watcherPollInterval) {
+      clearInterval(server.watcherPollInterval);
+      server.watcherPollInterval = null;
+    }
+    if (server.watcherRetryTimeout) {
+      clearTimeout(server.watcherRetryTimeout);
+      server.watcherRetryTimeout = null;
+    }
+
     if (!ensureLogWatcher()) {
       server.watcherPollInterval = setInterval(() => {
+        if (server.shuttingDown) {
+          clearInterval(server.watcherPollInterval);
+          server.watcherPollInterval = null;
+          return;
+        }
         if (!server.logWatcher && ensureLogWatcher()) {
           if (server.watcherPollInterval) {
             clearInterval(server.watcherPollInterval);
@@ -143,7 +163,14 @@ class ServerManager {
       }, 5000);
     }
 
-    server.readInterval = setInterval(() => this.readNewChatLines(serverId), 2000);
+    if (server.readInterval) {
+      clearInterval(server.readInterval);
+    }
+    server.readInterval = setInterval(() => {
+      if (!server.shuttingDown) {
+        this.readNewChatLines(serverId);
+      }
+    }, 2000);
   }
 
   /**
@@ -151,7 +178,7 @@ class ServerManager {
    */
   readNewChatLines(serverId) {
     const server = this.servers.get(serverId);
-    if (!server || !server.chatChannel) return;
+    if (!server || !server.chatChannel || server.shuttingDown) return;
 
     const logFile = server.config.chatBridge.logFile;
     if (!fs.existsSync(logFile)) return;
@@ -225,7 +252,7 @@ class ServerManager {
    * Parse a chat line from the game log
    */
   parseChatLine(line) {
-    const sayPattern = /say:\s*(.*?):\s+(.*)$/;
+    const sayPattern = /say:\u0020*(.*?):\u0020+(.*)$/;
     const match = line.match(sayPattern);
     if (match) {
       return {
@@ -243,7 +270,7 @@ class ServerManager {
   stripColors(text) {
     if (!text) return '';
     // Remove Quake 3/MBII color codes: ^0 through ^9, and ^A through ^F
-    return text.replace(/\^[0-9A-Fa-f]/g, '');
+    return text.replace(/\u005e[0-9A-Fa-f]/g, '');
   }
 
   /**
@@ -291,11 +318,23 @@ class ServerManager {
   shutdown() {
     console.log('[SERVERS] Shutting down all connections...');
     for (const [id, server] of this.servers) {
+      server.shuttingDown = true;
       if (server.logWatcher) {
         try { server.logWatcher.close(); } catch (e) {}
+        server.logWatcher = null;
       }
-      if (server.readInterval) clearInterval(server.readInterval);
-      if (server.watcherPollInterval) clearInterval(server.watcherPollInterval);
+      if (server.readInterval) {
+        clearInterval(server.readInterval);
+        server.readInterval = null;
+      }
+      if (server.watcherPollInterval) {
+        clearInterval(server.watcherPollInterval);
+        server.watcherPollInterval = null;
+      }
+      if (server.watcherRetryTimeout) {
+        clearTimeout(server.watcherRetryTimeout);
+        server.watcherRetryTimeout = null;
+      }
       server.rcon.disconnect();
       console.log(`[${id}] Shutdown complete`);
     }
